@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Funna — Your Running Coach</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg: #0b0f17;
@@ -264,6 +265,31 @@
   .hidden { display: none !important; }
   .section-title { font-size: 16px; font-weight: 700; margin: 0 0 10px; }
 
+  /* Auth screen */
+  .auth-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .auth-tab {
+    flex: 1; padding: 10px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    font-size: 14px;
+  }
+  .auth-tab.active {
+    background: var(--panel-2); color: var(--text); border-color: var(--accent);
+  }
+  .auth-card { width: 100%; max-width: 420px; }
+  .auth-brand {
+    display: flex; align-items: center; gap: 10px; justify-content: center;
+    margin-bottom: 18px; font-weight: 700; font-size: 20px;
+  }
+  .auth-brand .logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center; color: #1a1102; font-weight: 900; font-size: 18px;
+  }
+  .full-loader {
+    min-height: calc(100vh - 60px);
+    display: grid; place-items: center; color: var(--muted);
+  }
+
   /* Bar chart */
   .bar-chart { display: grid; gap: 6px; }
   .bar-row { display: grid; grid-template-columns: 120px 1fr 60px; gap: 10px; align-items: center; font-size: 12px; }
@@ -280,12 +306,46 @@
     <span class="badge">v1 prototype</span>
   </div>
   <div class="actions">
-    <button id="btn-reset" class="ghost" title="Clear all data and start again">Reset plan</button>
+    <span id="user-email" class="muted hidden" style="font-size:13px;"></span>
+    <button id="btn-reset" class="ghost hidden" title="Clear all data and start again">Reset plan</button>
+    <button id="btn-logout" class="ghost hidden">Sign out</button>
   </div>
 </header>
 
+<!-- BOOT LOADER (visible until we know if you're signed in) -->
+<section id="boot-loader" class="full-loader">
+  <div>Loading…</div>
+</section>
+
+<!-- AUTH SCREEN -->
+<section id="auth" class="onboarding-wrap hidden">
+  <div class="card auth-card">
+    <div class="auth-brand">
+      <div class="logo">F</div>
+      <div>Funna</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-mode="signin">Sign in</button>
+      <button class="auth-tab" data-mode="signup">Create account</button>
+    </div>
+    <h2 class="step-title" id="auth-title">Welcome back</h2>
+    <p class="step-sub" id="auth-sub">Sign in to access your training plan.</p>
+    <label>Email</label>
+    <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com" />
+    <div style="height:12px;"></div>
+    <label>Password</label>
+    <input type="password" id="auth-password" autocomplete="current-password" placeholder="At least 6 characters" />
+    <p id="auth-error" style="color:var(--red); font-size:13px; margin-top:8px; min-height:16px;"></p>
+    <p id="auth-info" style="color:var(--green); font-size:13px; margin-top:0; min-height:16px;"></p>
+    <button id="auth-submit" class="primary" style="width:100%; margin-top:8px;">Sign in</button>
+    <p style="text-align:center; margin-top:12px;">
+      <a href="#" id="auth-forgot" style="font-size:13px; color:var(--muted);">Forgot password?</a>
+    </p>
+  </div>
+</section>
+
 <!-- ONBOARDING -->
-<section id="onboarding" class="onboarding-wrap">
+<section id="onboarding" class="onboarding-wrap hidden">
   <div class="card onboarding">
     <div class="steps" id="steps"></div>
     <div id="step-body"></div>
@@ -372,9 +432,17 @@
 
 <script>
 /* ============================================================
+   SUPABASE CLIENT
+============================================================ */
+const SUPABASE_URL = 'https://cfqtqbxwspqnfegwlohn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmcXRxYnh3c3BxbmZlZ3dsb2huIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTc2MzcsImV4cCI6MjA5MjY5MzYzN30.6hnOu4lpKAFwcYoxXEEGkwBVRxGdVfsmZJwAX7C2oBA';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+
+/* ============================================================
    DATA MODEL + PERSISTENCE
 ============================================================ */
-const STORAGE_KEY = 'funna.v1.state';
+const LEGACY_LOCAL_KEY = 'funna.v1.state'; // only read for migration on first sign-in
 
 const RUN_TYPES = {
   long:       { label: 'Long run',      color: 'var(--blue)',    cls: 'type-long',
@@ -395,7 +463,7 @@ const RUN_TYPES = {
                 desc: 'The big day. Execute the plan.' },
 };
 
-const state = load() || {
+const state = {
   onboarding: { step: 0 },
   profile: null,    // { raceDate, distanceKm, terrain, runsPerWeek, level, longRunDay, currentWeeklyKm, goal, injuries }
   plan: null,       // { startDate, weeks: [{weekNumber, phase, runs:[{id,date,type,title,km,durationMin,notes,completed,actualKm,actualMin}]}] }
@@ -403,9 +471,40 @@ const state = load() || {
   currentWeek: 0,
 };
 
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-function load() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) { return null; }
+// Debounced save — collapses bursts of changes into a single network call.
+let saveTimer = null;
+function save() {
+  if (!currentUser) return; // ignore until signed in
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 400);
+}
+async function saveNow() {
+  if (!currentUser) return;
+  const { error } = await sb.from('training_plans').upsert({
+    user_id: currentUser.id,
+    profile: state.profile,
+    plan: state.plan,
+    current_week: state.currentWeek,
+    view: state.view,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) console.error('Save failed', error);
+}
+async function loadFromSupabase() {
+  if (!currentUser) return null;
+  const { data, error } = await sb
+    .from('training_plans')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+  if (error) { console.error('Load failed', error); return null; }
+  return data;
+}
+function loadLegacyLocal() {
+  try {
+    const raw = localStorage.getItem(LEGACY_LOCAL_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
 /* ============================================================
@@ -796,8 +895,7 @@ function makeRun(type, date, km, phase) {
    APP / VIEWS
 ============================================================ */
 function showApp() {
-  document.getElementById('onboarding').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
+  showOnly('app');
   // Pick the week containing today if possible
   const todayStr = new Date().toISOString().slice(0,10);
   const idx = state.plan.weeks.findIndex(w => {
@@ -1195,21 +1293,194 @@ document.getElementById('this-week').addEventListener('click', () => {
   if (idx >= 0) { state.currentWeek = idx; save(); renderCalendar(); }
 });
 
-document.getElementById('btn-reset').addEventListener('click', () => {
-  if (!confirm('Clear your plan and start onboarding again?')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  location.reload();
+// Reset handler is wired up inside boot() — see below — because it needs the signed-in user.
+
+/* ============================================================
+   AUTH UI
+============================================================ */
+let authMode = 'signin';
+
+function setAuthMode(mode) {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mode === mode);
+  });
+  document.getElementById('auth-title').textContent =
+    mode === 'signin' ? 'Welcome back' : 'Create your account';
+  document.getElementById('auth-sub').textContent =
+    mode === 'signin'
+      ? 'Sign in to access your training plan.'
+      : 'Sign up to save your plan and access it from any device.';
+  document.getElementById('auth-submit').textContent =
+    mode === 'signin' ? 'Sign in' : 'Create account';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-info').textContent = '';
+}
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.addEventListener('click', () => setAuthMode(tab.dataset.mode));
 });
+
+document.getElementById('auth-submit').addEventListener('click', async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errorEl = document.getElementById('auth-error');
+  const infoEl = document.getElementById('auth-info');
+  errorEl.textContent = ''; infoEl.textContent = '';
+
+  if (!email || !password) { errorEl.textContent = 'Email and password are required.'; return; }
+  if (password.length < 6)  { errorEl.textContent = 'Password must be at least 6 characters.'; return; }
+
+  const btn = document.getElementById('auth-submit');
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = '…';
+
+  try {
+    if (authMode === 'signin') {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) errorEl.textContent = error.message;
+      // success handled by onAuthStateChange
+    } else {
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) errorEl.textContent = error.message;
+      else if (!data.session) {
+        // Email confirmation is on — show check-inbox message
+        infoEl.textContent = 'Account created. Check your email to verify, then sign in.';
+        setAuthMode('signin');
+      }
+      // If session is returned (confirmation off), onAuthStateChange handles it
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+});
+
+['auth-email','auth-password'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('auth-submit').click();
+  });
+});
+
+document.getElementById('auth-forgot').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value.trim();
+  const errorEl = document.getElementById('auth-error');
+  const infoEl = document.getElementById('auth-info');
+  errorEl.textContent = ''; infoEl.textContent = '';
+  if (!email) { errorEl.textContent = 'Enter your email above first.'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  if (error) errorEl.textContent = error.message;
+  else infoEl.textContent = 'Password reset email sent.';
+});
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await sb.auth.signOut();
+});
+
+/* ============================================================
+   SCREEN ROUTING
+============================================================ */
+function showOnly(id) {
+  ['boot-loader','auth','onboarding','app'].forEach(s => {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  });
+}
+function setSignedInChrome(signedIn, email) {
+  document.getElementById('user-email').textContent = email || '';
+  document.getElementById('user-email').classList.toggle('hidden', !signedIn);
+  document.getElementById('btn-logout').classList.toggle('hidden', !signedIn);
+  document.getElementById('btn-reset').classList.toggle('hidden', !signedIn);
+}
+
+async function onSignedIn(user) {
+  currentUser = user;
+  setSignedInChrome(true, user.email);
+
+  const row = await loadFromSupabase();
+  if (row && row.plan && row.profile) {
+    state.profile = row.profile;
+    state.plan = row.plan;
+    state.currentWeek = row.current_week ?? 0;
+    state.view = row.view ?? 'calendar';
+    showApp();
+    return;
+  }
+
+  // No cloud plan yet — offer to import a legacy localStorage plan if one exists
+  const legacy = loadLegacyLocal();
+  if (legacy && legacy.plan && legacy.profile) {
+    const yes = confirm('We found a training plan saved on this device from before you had an account. Import it to your account?');
+    if (yes) {
+      state.profile = legacy.profile;
+      state.plan = legacy.plan;
+      state.currentWeek = legacy.currentWeek ?? 0;
+      state.view = legacy.view ?? 'calendar';
+      await saveNow();
+      localStorage.removeItem(LEGACY_LOCAL_KEY);
+      showApp();
+      return;
+    } else {
+      localStorage.removeItem(LEGACY_LOCAL_KEY);
+    }
+  }
+
+  // Brand new user — onboarding
+  state.profile = null;
+  state.plan = null;
+  state.onboarding = { step: 0 };
+  showOnly('onboarding');
+  renderOnboarding();
+}
+
+function onSignedOut() {
+  currentUser = null;
+  state.profile = null;
+  state.plan = null;
+  state.onboarding = { step: 0 };
+  setSignedInChrome(false);
+  // Clear inputs
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-info').textContent = '';
+  setAuthMode('signin');
+  showOnly('auth');
+}
 
 /* ============================================================
    BOOT
 ============================================================ */
-(function boot() {
-  if (state.plan && state.profile) {
-    showApp();
-  } else {
+(async function boot() {
+  showOnly('boot-loader');
+
+  // Reset is now per-user: clear cloud plan and re-onboard
+  document.getElementById('btn-reset').onclick = async () => {
+    if (!confirm('Clear your plan and start onboarding again? This deletes your cloud-saved plan.')) return;
+    if (currentUser) {
+      await sb.from('training_plans').delete().eq('user_id', currentUser.id);
+    }
+    state.profile = null;
+    state.plan = null;
+    state.onboarding = { step: 0 };
+    showOnly('onboarding');
     renderOnboarding();
+  };
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await onSignedIn(session.user);
+  } else {
+    onSignedOut();
   }
+
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session && (!currentUser || currentUser.id !== session.user.id)) {
+      onSignedIn(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      onSignedOut();
+    }
+  });
 })();
 </script>
 </body>
