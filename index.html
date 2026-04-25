@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Funna — Your Running Coach</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #121826;
+    --panel-2: #1a2133;
+    --border: #232c42;
+    --text: #e7ecf3;
+    --muted: #8a93a6;
+    --accent: #ff5a1f;
+    --accent-2: #ffb020;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --teal: #14b8a6;
+    --pink: #ec4899;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    transition: transform .08s ease, background .15s ease, border-color .15s ease;
+  }
+  button:hover { border-color: #36425f; }
+  button:active { transform: translateY(1px); }
+  button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border: none;
+    color: #1a1102;
+    font-weight: 600;
+  }
+  button.primary:hover { filter: brightness(1.05); }
+  button.ghost { background: transparent; }
+  button.danger { background: transparent; color: var(--red); border-color: #3a2733; }
+  input, select, textarea {
+    font-family: inherit;
+    background: #0f1522;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+
+  header.topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px;
+    background: rgba(11,15,23,.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .3px; }
+  .brand .logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center; color: #1a1102; font-weight: 900;
+  }
+  .topbar .actions { display: flex; gap: 8px; }
+
+  .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+  .grid { display: grid; gap: 16px; }
+
+  /* Onboarding */
+  .onboarding-wrap {
+    min-height: calc(100vh - 60px);
+    display: grid; place-items: center;
+    padding: 40px 20px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+  }
+  .onboarding {
+    width: 100%; max-width: 640px;
+  }
+  .steps { display: flex; gap: 6px; margin-bottom: 20px; }
+  .step-pill {
+    flex: 1; height: 6px; border-radius: 4px; background: var(--border);
+  }
+  .step-pill.active { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .step-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+  .step-sub { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--panel-2);
+    user-select: none;
+  }
+  .chip.selected { border-color: var(--accent); color: var(--accent); }
+  .nav-row {
+    display: flex; justify-content: space-between; margin-top: 24px;
+  }
+
+  /* Dashboard layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .sidebar {
+    position: sticky; top: 76px; align-self: start;
+  }
+  .side-section { margin-bottom: 18px; }
+  .side-section h4 {
+    text-transform: uppercase; font-size: 11px; color: var(--muted); margin: 0 0 10px; letter-spacing: 1px;
+  }
+  .nav-btn {
+    width: 100%; text-align: left; padding: 10px 12px; background: transparent;
+    border: 1px solid transparent; border-radius: 10px; color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-btn.active { background: var(--panel); border-color: var(--border); }
+  .nav-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .nav-btn.active .dot { background: var(--accent); }
+
+  /* Metric cards */
+  .metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  @media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+  .metric {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px;
+  }
+  .metric .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .metric .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+  .metric .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .progress {
+    margin-top: 10px; background: var(--panel-2); border-radius: 999px; height: 6px; overflow: hidden;
+  }
+  .progress > div {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  }
+
+  /* Calendar */
+  .calendar-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
+  .calendar-head h2 { margin: 0; font-size: 18px; }
+  .cal-nav { display: flex; gap: 6px; }
+  .week-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;
+  }
+  @media (max-width: 900px) {
+    .week-grid { grid-template-columns: 1fr; }
+  }
+  .day {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    min-height: 140px; padding: 10px;
+    display: flex; flex-direction: column;
+  }
+  .day.today { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(255,90,31,.3) inset; }
+  .day.drag-over { background: #1b2334; border-color: var(--accent); }
+  .day-head {
+    display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;
+  }
+  .day-name { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .day-date { font-size: 16px; font-weight: 600; }
+  .run-card {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 10px; margin-bottom: 6px;
+    cursor: grab; position: relative;
+    border-left: 4px solid var(--muted);
+  }
+  .run-card:active { cursor: grabbing; }
+  .run-card.dragging { opacity: .4; }
+  .run-card.completed { opacity: .7; }
+  .run-card.completed .run-title { text-decoration: line-through; color: var(--muted); }
+  .run-card .run-title {
+    font-size: 13px; font-weight: 600; margin-bottom: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .run-card .run-meta { font-size: 11px; color: var(--muted); }
+  .run-card .check {
+    position: absolute; top: 8px; right: 8px;
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--muted); background: transparent;
+    display: grid; place-items: center; padding: 0;
+  }
+  .run-card .check.checked {
+    background: var(--green); border-color: var(--green);
+  }
+  .run-card .check.checked::after {
+    content: "✓"; color: #052b13; font-size: 11px; font-weight: 900;
+  }
+
+  /* Run types colors (left border) */
+  .type-long { border-left-color: var(--blue); }
+  .type-tempo { border-left-color: var(--red); }
+  .type-intervals { border-left-color: var(--purple); }
+  .type-hill { border-left-color: var(--pink); }
+  .type-fartlek { border-left-color: var(--yellow); }
+  .type-easy { border-left-color: var(--green); }
+  .type-recovery { border-left-color: var(--teal); }
+  .type-race { border-left-color: var(--accent); }
+
+  .badge {
+    display: inline-block; font-size: 10px; padding: 2px 6px;
+    border-radius: 4px; background: var(--panel); color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: grid; place-items: center; z-index: 50;
+  }
+  .modal {
+    width: 92%; max-width: 520px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px;
+  }
+  .modal h3 { margin: 0 0 4px; }
+  .modal p.sub { color: var(--muted); margin: 0 0 16px; font-size: 13px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+  /* Helpers */
+  .flex { display: flex; }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .gap-8 { gap: 8px; } .gap-12 { gap: 12px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .hidden { display: none !important; }
+  .section-title { font-size: 16px; font-weight: 700; margin: 0 0 10px; }
+
+  /* Bar chart */
+  .bar-chart { display: grid; gap: 6px; }
+  .bar-row { display: grid; grid-template-columns: 120px 1fr 60px; gap: 10px; align-items: center; font-size: 12px; }
+  .bar-track { background: var(--panel-2); border-radius: 6px; height: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">F</div>
+    <div>Funna</div>
+    <span class="badge">v1 prototype</span>
+  </div>
+  <div class="actions">
+    <button id="btn-reset" class="ghost" title="Clear all data and start again">Reset plan</button>
+  </div>
+</header>
+
+<!-- ONBOARDING -->
+<section id="onboarding" class="onboarding-wrap">
+  <div class="card onboarding">
+    <div class="steps" id="steps"></div>
+    <div id="step-body"></div>
+    <div class="nav-row">
+      <button id="btn-back" class="ghost">Back</button>
+      <button id="btn-next" class="primary">Next</button>
+    </div>
+  </div>
+</section>
+
+<!-- APP -->
+<main id="app" class="container hidden">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="card">
+        <div class="side-section">
+          <h4>Overview</h4>
+          <button class="nav-btn active" data-view="calendar"><span class="dot"></span>Calendar</button>
+          <button class="nav-btn" data-view="metrics"><span class="dot"></span>Metrics</button>
+          <button class="nav-btn" data-view="plan"><span class="dot"></span>Full plan</button>
+        </div>
+        <div class="side-section">
+          <h4>Your race</h4>
+          <div id="race-summary" class="muted"></div>
+        </div>
+        <div class="side-section">
+          <h4>Run types</h4>
+          <div id="legend" class="legend"></div>
+        </div>
+      </div>
+    </aside>
+
+    <section>
+      <!-- Metrics row, always visible -->
+      <div class="metrics" id="metrics-top"></div>
+
+      <!-- Calendar view -->
+      <div class="view" id="view-calendar" style="margin-top:16px;">
+        <div class="card">
+          <div class="calendar-head">
+            <h2 id="week-label">Week</h2>
+            <div class="cal-nav">
+              <button id="prev-week" class="ghost">← Prev</button>
+              <button id="this-week" class="ghost">This week</button>
+              <button id="next-week" class="ghost">Next →</button>
+            </div>
+          </div>
+          <div class="week-grid" id="week-grid"></div>
+          <p class="muted" style="margin-top:10px;">Tip: drag a run onto another day to reschedule. Click a run to log it.</p>
+        </div>
+      </div>
+
+      <!-- Metrics view -->
+      <div class="view hidden" id="view-metrics" style="margin-top:16px;">
+        <div class="card">
+          <h2 class="section-title">Training metrics</h2>
+          <div id="metrics-detail"></div>
+        </div>
+      </div>
+
+      <!-- Full plan view -->
+      <div class="view hidden" id="view-plan" style="margin-top:16px;">
+        <div class="card">
+          <h2 class="section-title">Full training plan</h2>
+          <div id="plan-full"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Run detail modal -->
+<div id="modal-backdrop" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3 id="modal-title">Run</h3>
+    <p class="sub" id="modal-sub"></p>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button id="modal-cancel" class="ghost">Close</button>
+      <button id="modal-save" class="primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DATA MODEL + PERSISTENCE
+============================================================ */
+const STORAGE_KEY = 'funna.v1.state';
+
+const RUN_TYPES = {
+  long:       { label: 'Long run',      color: 'var(--blue)',    cls: 'type-long',
+                desc: 'Slow, sustained effort to build aerobic endurance. Conversational pace.' },
+  tempo:      { label: 'Tempo',         color: 'var(--red)',     cls: 'type-tempo',
+                desc: 'Comfortably hard sustained effort near lactate threshold.' },
+  intervals:  { label: 'Intervals',     color: 'var(--purple)',  cls: 'type-intervals',
+                desc: 'Structured reps at hard effort with recovery between.' },
+  hill:       { label: 'Hill sprints',  color: 'var(--pink)',    cls: 'type-hill',
+                desc: 'Short, explosive uphill reps. Builds strength & power.' },
+  fartlek:    { label: 'Fartlek',       color: 'var(--yellow)',  cls: 'type-fartlek',
+                desc: 'Playful "speed play" — mix hard and easy surges by feel.' },
+  easy:       { label: 'Easy run',      color: 'var(--green)',   cls: 'type-easy',
+                desc: 'Relaxed, low heart rate. The bulk of your weekly volume.' },
+  recovery:   { label: 'Recovery',      color: 'var(--teal)',    cls: 'type-recovery',
+                desc: 'Very easy shakeout to promote blood flow and adaptation.' },
+  race:       { label: 'Race day',      color: 'var(--accent)',  cls: 'type-race',
+                desc: 'The big day. Execute the plan.' },
+};
+
+const state = load() || {
+  onboarding: { step: 0 },
+  profile: null,    // { raceDate, distanceKm, terrain, runsPerWeek, level, longRunDay, currentWeeklyKm, goal, injuries }
+  plan: null,       // { startDate, weeks: [{weekNumber, phase, runs:[{id,date,type,title,km,durationMin,notes,completed,actualKm,actualMin}]}] }
+  view: 'calendar',
+  currentWeek: 0,
+};
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) { return null; }
+}
+
+/* ============================================================
+   ONBOARDING
+============================================================ */
+const STEPS = [
+  {
+    title: "When's your race?",
+    sub: "We'll build a plan that peaks on race day.",
+    render: () => `
+      <label>Race date</label>
+      <input type="date" id="f-raceDate" value="${state.profile?.raceDate || ''}" />
+      <div style="height:12px;"></div>
+      <label>Race name (optional)</label>
+      <input type="text" id="f-raceName" placeholder="e.g. Berlin Marathon" value="${state.profile?.raceName || ''}" />
+    `,
+    validate: () => {
+      const d = document.getElementById('f-raceDate').value;
+      if (!d) return 'Please pick a date.';
+      const today = new Date(); today.setHours(0,0,0,0);
+      const race = new Date(d);
+      if (race <= today) return 'Race date must be in the future.';
+      const weeks = Math.floor((race - today) / (7*24*60*60*1000));
+      if (weeks < 2) return 'We recommend at least 2 weeks of training.';
+      return null;
+    },
+    commit: () => {
+      state.profile = state.profile || {};
+      state.profile.raceDate = document.getElementById('f-raceDate').value;
+      state.profile.raceName = document.getElementById('f-raceName').value;
+    }
+  },
+  {
+    title: "What's the distance?",
+    sub: "Pick the closest option — it drives weekly volume and long-run progression.",
+    render: () => `
+      <div class="chips" id="f-distance">
+        ${[
+          {k:5, l:'5K'}, {k:10, l:'10K'},
+          {k:21.1, l:'Half marathon'}, {k:42.2, l:'Marathon'},
+          {k:50, l:'50K ultra'},
+        ].map(o => `
+          <div class="chip ${state.profile?.distanceKm===o.k?'selected':''}" data-k="${o.k}">${o.l}</div>
+        `).join('')}
+      </div>
+    `,
+    validate: () => state.profile?.distanceKm ? null : 'Pick a distance.',
+    attach: () => {
+      document.querySelectorAll('#f-distance .chip').forEach(c => {
+        c.addEventListener('click', () => {
+          document.querySelectorAll('#f-distance .chip').forEach(x => x.classList.remove('selected'));
+          c.classList.add('selected');
+          state.profile = state.profile || {};
+          state.profile.distanceKm = parseFloat(c.dataset.k);
+        });
+      });
+    },
+    commit: () => {}
+  },
+  {
+    title: "Where will you run?",
+    sub: "Terrain changes how we balance hills, tempo and long-run surfaces.",
+    render: () => `
+      <div class="chips" id="f-terrain">
+        ${['Road','Trail','Track','Mixed'].map(t => `
+          <div class="chip ${state.profile?.terrain===t?'selected':''}" data-v="${t}">${t}</div>
+        `).join('')}
+      </div>
+    `,
+    validate: () => state.profile?.terrain ? null : 'Pick a terrain.',
+    attach: () => {
+      document.querySelectorAll('#f-terrain .chip').forEach(c => {
+        c.addEventListener('click', () => {
+          document.querySelectorAll('#f-terrain .chip').forEach(x => x.classList.remove('selected'));
+          c.classList.add('selected');
+          state.profile = state.profile || {};
+          state.profile.terrain = c.dataset.v;
+        });
+      });
+    },
+    commit: () => {}
+  },
+  {
+    title: "How often can you run?",
+    sub: "Be realistic — consistency beats intensity.",
+    render: () => `
+      <label>Runs per week</label>
+      <div class="chips" id="f-freq">
+        ${[3,4,5,6].map(n => `
+          <div class="chip ${state.profile?.runsPerWeek===n?'selected':''}" data-n="${n}">${n} runs</div>
+        `).join('')}
+      </div>
+      <div style="height:16px;"></div>
+      <label>Preferred long-run day</label>
+      <select id="f-longDay">
+        ${['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday','Friday']
+          .map(d => `<option ${state.profile?.longRunDay===d?'selected':''}>${d}</option>`).join('')}
+      </select>
+    `,
+    validate: () => state.profile?.runsPerWeek ? null : 'Pick a frequency.',
+    attach: () => {
+      document.querySelectorAll('#f-freq .chip').forEach(c => {
+        c.addEventListener('click', () => {
+          document.querySelectorAll('#f-freq .chip').forEach(x => x.classList.remove('selected'));
+          c.classList.add('selected');
+          state.profile = state.profile || {};
+          state.profile.runsPerWeek = parseInt(c.dataset.n);
+        });
+      });
+    },
+    commit: () => {
+      state.profile.longRunDay = document.getElementById('f-longDay').value;
+    }
+  },
+  {
+    title: "Tell us about you",
+    sub: "A bit of context helps us scale volume safely.",
+    render: () => `
+      <label>Current fitness level</label>
+      <div class="chips" id="f-level">
+        ${[
+          {k:'beginner', l:'Beginner — running for less than 6 months'},
+          {k:'intermediate', l:'Intermediate — run regularly, done a race'},
+          {k:'advanced', l:'Advanced — experienced racer'},
+        ].map(o => `<div class="chip ${state.profile?.level===o.k?'selected':''}" data-k="${o.k}">${o.l}</div>`).join('')}
+      </div>
+      <div style="height:16px;"></div>
+      <div class="row">
+        <div>
+          <label>Current weekly distance (km)</label>
+          <input id="f-weeklyKm" type="number" min="0" step="1" value="${state.profile?.currentWeeklyKm||''}" placeholder="e.g. 20" />
+        </div>
+        <div>
+          <label>Goal</label>
+          <select id="f-goal">
+            ${['Finish strong','Hit a target time','Build endurance','Have fun']
+              .map(g => `<option ${state.profile?.goal===g?'selected':''}>${g}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="height:12px;"></div>
+      <label>Any injuries or constraints? (optional)</label>
+      <textarea id="f-injuries" rows="2" placeholder="e.g. recovering from shin splints">${state.profile?.injuries||''}</textarea>
+    `,
+    validate: () => state.profile?.level ? null : 'Pick a fitness level.',
+    attach: () => {
+      document.querySelectorAll('#f-level .chip').forEach(c => {
+        c.addEventListener('click', () => {
+          document.querySelectorAll('#f-level .chip').forEach(x => x.classList.remove('selected'));
+          c.classList.add('selected');
+          state.profile = state.profile || {};
+          state.profile.level = c.dataset.k;
+        });
+      });
+    },
+    commit: () => {
+      state.profile.currentWeeklyKm = parseFloat(document.getElementById('f-weeklyKm').value || 0);
+      state.profile.goal = document.getElementById('f-goal').value;
+      state.profile.injuries = document.getElementById('f-injuries').value;
+    }
+  },
+];
+
+function renderOnboarding() {
+  const stepsEl = document.getElementById('steps');
+  const body = document.getElementById('step-body');
+  const i = state.onboarding.step;
+  stepsEl.innerHTML = STEPS.map((_, idx) =>
+    `<div class="step-pill ${idx<=i?'active':''}"></div>`
+  ).join('');
+  const s = STEPS[i];
+  body.innerHTML = `
+    <h2 class="step-title">${s.title}</h2>
+    <p class="step-sub">${s.sub}</p>
+    ${s.render()}
+    <p id="step-error" style="color:var(--red); font-size:13px; margin-top:8px; min-height:16px;"></p>
+  `;
+  if (s.attach) s.attach();
+
+  document.getElementById('btn-back').style.visibility = i === 0 ? 'hidden' : 'visible';
+  document.getElementById('btn-next').textContent = i === STEPS.length - 1 ? 'Build my plan' : 'Next';
+}
+
+document.getElementById('btn-back').addEventListener('click', () => {
+  if (state.onboarding.step > 0) {
+    state.onboarding.step--;
+    save();
+    renderOnboarding();
+  }
+});
+document.getElementById('btn-next').addEventListener('click', () => {
+  const s = STEPS[state.onboarding.step];
+  const err = s.validate();
+  if (err) {
+    document.getElementById('step-error').textContent = err;
+    return;
+  }
+  s.commit();
+  save();
+  if (state.onboarding.step < STEPS.length - 1) {
+    state.onboarding.step++;
+    save();
+    renderOnboarding();
+  } else {
+    // build plan
+    state.plan = buildPlan(state.profile);
+    state.currentWeek = 0;
+    save();
+    showApp();
+  }
+});
+
+/* ============================================================
+   PLAN GENERATION
+   Simple heuristic plan. Good enough for v1.
+============================================================ */
+function buildPlan(p) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const race = new Date(p.raceDate); race.setHours(0,0,0,0);
+  // Snap start to this Monday
+  const start = new Date(today);
+  const day = start.getDay(); // 0=Sun
+  const mondayOffset = (day === 0 ? -6 : 1 - day);
+  start.setDate(start.getDate() + mondayOffset);
+
+  const totalDays = Math.ceil((race - start) / (24*60*60*1000));
+  const totalWeeks = Math.max(2, Math.ceil(totalDays / 7));
+
+  // Phases: build (60%), peak (25%), taper (15%), with race day at end
+  const taperWeeks = Math.min(3, Math.max(1, Math.round(totalWeeks * 0.15)));
+  const peakWeeks = Math.max(1, Math.round(totalWeeks * 0.25));
+  const buildWeeks = totalWeeks - taperWeeks - peakWeeks;
+
+  // Base weekly km
+  const baseByLevel = { beginner: 15, intermediate: 30, advanced: 50 };
+  let baseKm = Math.max(baseByLevel[p.level], p.currentWeeklyKm || 0);
+  // Scale target volume by race distance
+  const distanceFactor = {
+    5: 1.0, 10: 1.4, 21.1: 2.2, 42.2: 3.4, 50: 4.0
+  }[p.distanceKm] || 2;
+  const peakKm = Math.max(baseKm * 1.1, baseByLevel[p.level] * distanceFactor);
+
+  const weeks = [];
+  let runId = 0;
+  for (let w = 0; w < totalWeeks; w++) {
+    let phase, weekKm;
+    const buildProgress = (w + 1) / Math.max(1, buildWeeks);
+    if (w < buildWeeks) {
+      phase = 'Build';
+      weekKm = baseKm + (peakKm - baseKm) * Math.min(1, buildProgress);
+      // Every 4th week is a cutback
+      if ((w+1) % 4 === 0) weekKm *= 0.75;
+    } else if (w < buildWeeks + peakWeeks) {
+      phase = 'Peak';
+      weekKm = peakKm * (1 - (w - buildWeeks) * 0.03);
+    } else {
+      const t = w - buildWeeks - peakWeeks;
+      phase = 'Taper';
+      weekKm = peakKm * (0.7 - t * 0.2);
+    }
+    weekKm = Math.max(10, Math.round(weekKm));
+
+    // Is this the race week?
+    const weekStart = new Date(start);
+    weekStart.setDate(weekStart.getDate() + w * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    const isRaceWeek = race >= weekStart && race <= weekEnd;
+
+    const runs = distributeWeek({
+      weekKm, profile: p, phase, weekStart, isRaceWeek, raceDate: race, weekIndex: w, totalWeeks
+    }).map(r => ({ ...r, id: `r${runId++}` }));
+
+    weeks.push({
+      weekNumber: w + 1,
+      phase: isRaceWeek ? 'Race week' : phase,
+      startDate: weekStart.toISOString().slice(0,10),
+      plannedKm: runs.reduce((s, r) => s + (r.km || 0), 0),
+      runs
+    });
+  }
+
+  // Ensure current week index is the one containing today
+  return { startDate: start.toISOString().slice(0,10), weeks };
+}
+
+function distributeWeek({ weekKm, profile, phase, weekStart, isRaceWeek, raceDate, weekIndex, totalWeeks }) {
+  // Build list of run days. Prefer long run day.
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const longIdx = dayNames.indexOf(profile.longRunDay || 'Sunday');
+  const freq = profile.runsPerWeek;
+
+  // Preferred day slots by frequency
+  const slotsByFreq = {
+    3: [1, 3, longIdx],                              // Tue / Thu / Long
+    4: [1, 2, 4, longIdx],                           // Tue / Wed / Fri / Long
+    5: [0, 1, 3, 4, longIdx],                        // Mon / Tue / Thu / Fri / Long
+    6: [0, 1, 2, 3, 4, longIdx],                     // Mon–Fri + Long
+  };
+  let slots = [...new Set(slotsByFreq[freq])];
+  // In case longIdx overlapped, top up
+  for (let d = 0; d < 7 && slots.length < freq; d++) {
+    if (!slots.includes(d)) slots.push(d);
+  }
+  slots = slots.slice(0, freq).sort((a,b) => a-b);
+
+  // Long run proportion: ~30-40% of weekly volume, adjusted
+  const longPct = phase === 'Taper' ? 0.28 : 0.35;
+  const longKm = Math.max(4, Math.round(weekKm * longPct));
+  const remaining = Math.max(0, weekKm - longKm);
+  const otherRuns = slots.filter(s => s !== longIdx);
+
+  // Assign run types to non-long days — rotate through a palette based on phase
+  const palette = {
+    Build: ['easy','tempo','easy','intervals','easy','hill'],
+    Peak:  ['tempo','intervals','easy','hill','easy','fartlek'],
+    Taper: ['easy','tempo','recovery','easy','easy','easy'],
+  }[phase] || ['easy','tempo','intervals','easy','hill','fartlek'];
+
+  // Distribute remaining km slightly weighted toward key sessions
+  const weights = otherRuns.map((_, i) => {
+    const t = palette[i % palette.length];
+    return (t === 'tempo' || t === 'intervals' || t === 'hill') ? 1.1 : 1.0;
+  });
+  const wsum = weights.reduce((a,b) => a+b, 0);
+  const perRun = otherRuns.map((_, i) => Math.max(3, Math.round(remaining * weights[i] / wsum)));
+
+  const runs = [];
+  let paletteIdx = 0;
+  for (const dayIdx of slots) {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + dayIdx);
+    if (dayIdx === longIdx) {
+      runs.push(makeRun('long', date, longKm, phase));
+    } else {
+      const type = palette[paletteIdx % palette.length];
+      const km = perRun.shift() || Math.max(3, Math.round(remaining / Math.max(1, otherRuns.length)));
+      runs.push(makeRun(type, date, km, phase));
+      paletteIdx++;
+    }
+  }
+
+  // Race week override
+  if (isRaceWeek) {
+    // Only keep 2-3 short shakeouts, plus race day
+    const kept = runs.filter(r => r.date !== raceDate.toISOString().slice(0,10))
+                     .slice(0, Math.min(3, runs.length - 1))
+                     .map(r => ({ ...r, type: 'recovery', title: 'Shakeout', km: Math.min(r.km, 5), durationMin: Math.round(Math.min(r.km,5) * 6.5), notes: 'Very easy. Stay loose.' }));
+    kept.push(makeRun('race', raceDate, profile.distanceKm, 'Race'));
+    return kept;
+  }
+
+  return runs;
+}
+
+function makeRun(type, date, km, phase) {
+  const pacesMinPerKm = {
+    easy: 6.5, recovery: 7.0, long: 6.3, tempo: 5.2,
+    intervals: 4.8, fartlek: 5.8, hill: 5.5, race: 5.5
+  };
+  const pace = pacesMinPerKm[type] || 6;
+  const durationMin = Math.round(km * pace);
+  const titles = {
+    easy: 'Easy run',
+    recovery: 'Recovery jog',
+    long: 'Long run',
+    tempo: `Tempo (${Math.max(1, Math.round(km*0.5))}K at threshold)`,
+    intervals: `Intervals (e.g. ${Math.max(4, Math.round(km/1.5))} × 400m)`,
+    fartlek: 'Fartlek — play with pace',
+    hill: `Hill sprints (${Math.max(4, Math.round(km*0.6))} × 30s)`,
+    race: 'Race day 🏁'
+  };
+  return {
+    date: date.toISOString().slice(0,10),
+    type,
+    title: titles[type] || 'Run',
+    km,
+    durationMin,
+    notes: RUN_TYPES[type].desc,
+    completed: false,
+    actualKm: null,
+    actualMin: null,
+  };
+}
+
+/* ============================================================
+   APP / VIEWS
+============================================================ */
+function showApp() {
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  // Pick the week containing today if possible
+  const todayStr = new Date().toISOString().slice(0,10);
+  const idx = state.plan.weeks.findIndex(w => {
+    const start = new Date(w.startDate);
+    const end = new Date(start); end.setDate(end.getDate() + 6);
+    const today = new Date(todayStr);
+    return today >= start && today <= end;
+  });
+  state.currentWeek = idx >= 0 ? idx : 0;
+  save();
+  renderAll();
+}
+
+function renderAll() {
+  renderRaceSummary();
+  renderLegend();
+  renderMetricsTop();
+  renderCalendar();
+  renderMetricsDetail();
+  renderFullPlan();
+  renderView();
+}
+
+function renderRaceSummary() {
+  const p = state.profile;
+  const el = document.getElementById('race-summary');
+  if (!p) { el.innerHTML = ''; return; }
+  const race = new Date(p.raceDate);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const daysTo = Math.ceil((race - today) / (24*60*60*1000));
+  el.innerHTML = `
+    <div style="font-weight:600; color:var(--text);">${p.raceName || 'Your race'}</div>
+    <div>${formatDate(race)} — ${p.distanceKm}K</div>
+    <div>${p.terrain} · ${p.runsPerWeek}×/week</div>
+    <div style="margin-top:6px; color:var(--accent); font-weight:600;">${daysTo} days to go</div>
+  `;
+}
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = Object.entries(RUN_TYPES).map(([k,v]) =>
+    `<div class="legend-item">
+      <div class="legend-swatch" style="background:${v.color};"></div>${v.label}
+    </div>`
+  ).join('');
+}
+
+function renderMetricsTop() {
+  const m = computeMetrics();
+  const el = document.getElementById('metrics-top');
+  el.innerHTML = [
+    { label: 'Plan complete', value: `${m.pctTimeElapsed.toFixed(0)}%`, sub: `Week ${m.currentWeekNum} of ${m.totalWeeks}`, pct: m.pctTimeElapsed },
+    { label: 'Runs completed', value: `${m.completedRuns}/${m.totalRuns}`, sub: `${m.pctRunsCompleted.toFixed(0)}% of planned runs`, pct: m.pctRunsCompleted },
+    { label: 'Distance logged', value: `${m.actualKm.toFixed(1)} km`, sub: `of ${m.plannedKm.toFixed(0)} km planned`, pct: m.plannedKm ? (m.actualKm/m.plannedKm*100) : 0 },
+    { label: 'Avg pace', value: m.avgPace ? `${m.avgPace}` : '—', sub: m.avgPace ? 'across completed runs' : 'log a run to see this' },
+  ].map(c => `
+    <div class="metric">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+      ${c.pct !== undefined ? `<div class="progress"><div style="width:${Math.min(100,c.pct)}%"></div></div>` : ''}
+    </div>
+  `).join('');
+}
+
+function renderMetricsDetail() {
+  const m = computeMetrics();
+  const byType = m.byType;
+  const weeks = state.plan.weeks;
+  const maxWeek = Math.max(...weeks.map(w => w.plannedKm), 1);
+  const el = document.getElementById('metrics-detail');
+  el.innerHTML = `
+    <div class="grid" style="grid-template-columns: 1fr 1fr; gap:16px;">
+      <div>
+        <h3 style="margin:0 0 10px; font-size:14px;">Weekly volume</h3>
+        <div class="bar-chart">
+          ${weeks.map((w, i) => {
+            const actual = w.runs.reduce((s,r) => s + (r.actualKm || 0), 0);
+            const planned = w.plannedKm;
+            return `
+              <div class="bar-row">
+                <div>W${w.weekNumber} · ${w.phase}</div>
+                <div class="bar-track"><div class="bar-fill" style="width:${(planned/maxWeek)*100}%"></div></div>
+                <div style="text-align:right; color:${actual>=planned*0.9?'var(--green)':'var(--muted)'};">${actual.toFixed(0)}/${planned.toFixed(0)}km</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      <div>
+        <h3 style="margin:0 0 10px; font-size:14px;">Runs by type</h3>
+        <div class="bar-chart">
+          ${Object.entries(byType).map(([k,v]) => `
+            <div class="bar-row">
+              <div><span class="legend-swatch" style="display:inline-block;background:${RUN_TYPES[k].color}; margin-right:6px;"></span>${RUN_TYPES[k].label}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${(v.completed/Math.max(v.total,1))*100}%"></div></div>
+              <div style="text-align:right;">${v.completed}/${v.total}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <h3 style="margin:18px 0 10px; font-size:14px;">Totals</h3>
+        <div class="muted">Total planned distance: <strong style="color:var(--text)">${m.plannedKm.toFixed(0)} km</strong></div>
+        <div class="muted">Total distance logged: <strong style="color:var(--text)">${m.actualKm.toFixed(1)} km</strong></div>
+        <div class="muted">Total time logged: <strong style="color:var(--text)">${formatMinutes(m.actualMin)}</strong></div>
+        <div class="muted">Longest run so far: <strong style="color:var(--text)">${m.longestRun.toFixed(1)} km</strong></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderFullPlan() {
+  const el = document.getElementById('plan-full');
+  el.innerHTML = state.plan.weeks.map(w => `
+    <div style="margin-bottom:18px;">
+      <div class="flex-between" style="margin-bottom:8px;">
+        <div><strong>Week ${w.weekNumber}</strong> — ${w.phase} <span class="muted">(starts ${formatDate(new Date(w.startDate))})</span></div>
+        <div class="muted">${w.plannedKm.toFixed(0)} km planned</div>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:8px;">
+        ${w.runs.map(r => renderRunCard(r, false)).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCalendar() {
+  const w = state.plan.weeks[state.currentWeek];
+  document.getElementById('week-label').textContent =
+    `Week ${w.weekNumber} · ${w.phase} · ${formatDate(new Date(w.startDate))}`;
+
+  const grid = document.getElementById('week-grid');
+  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  grid.innerHTML = dayNames.map((name, i) => {
+    const date = new Date(w.startDate);
+    date.setDate(date.getDate() + i);
+    const dateStr = date.toISOString().slice(0,10);
+    const runs = w.runs.filter(r => r.date === dateStr);
+    const isToday = dateStr === todayStr;
+    return `
+      <div class="day ${isToday?'today':''}" data-date="${dateStr}">
+        <div class="day-head">
+          <div>
+            <div class="day-name">${name}</div>
+            <div class="day-date">${date.getDate()}</div>
+          </div>
+          ${isToday?'<span class="badge" style="background:rgba(255,90,31,.15); color:var(--accent);">Today</span>':''}
+        </div>
+        <div class="day-runs" data-date="${dateStr}">
+          ${runs.map(r => renderRunCard(r, true)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  attachDnD();
+  attachRunClicks();
+}
+
+function renderRunCard(r, draggable) {
+  const t = RUN_TYPES[r.type];
+  return `
+    <div class="run-card ${t.cls} ${r.completed?'completed':''}"
+         draggable="${draggable}" data-id="${r.id}">
+      <button class="check ${r.completed?'checked':''}" data-id="${r.id}" title="Mark complete"></button>
+      <div class="run-title">${t.label}</div>
+      <div class="run-meta">${r.km.toFixed(1)} km · ~${r.durationMin} min</div>
+      ${r.completed && r.actualKm!=null ? `
+        <div class="run-meta" style="color:var(--green); margin-top:4px;">
+          Logged: ${r.actualKm.toFixed(1)} km · ${r.actualMin} min
+        </div>` : ''}
+    </div>
+  `;
+}
+
+function attachRunClicks() {
+  document.querySelectorAll('.run-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.classList.contains('check')) return;
+      openRunModal(card.dataset.id);
+    });
+  });
+  document.querySelectorAll('.check').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const run = findRun(btn.dataset.id);
+      if (!run) return;
+      run.completed = !run.completed;
+      if (run.completed && run.actualKm == null) {
+        run.actualKm = run.km;
+        run.actualMin = run.durationMin;
+      }
+      save();
+      renderMetricsTop();
+      renderCalendar();
+      renderMetricsDetail();
+    });
+  });
+}
+
+/* ============================================================
+   DRAG & DROP
+============================================================ */
+function attachDnD() {
+  let draggingId = null;
+  document.querySelectorAll('.run-card[draggable="true"]').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      draggingId = card.dataset.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.id);
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+    });
+  });
+  document.querySelectorAll('.day').forEach(day => {
+    day.addEventListener('dragover', e => {
+      e.preventDefault();
+      day.classList.add('drag-over');
+    });
+    day.addEventListener('dragleave', () => day.classList.remove('drag-over'));
+    day.addEventListener('drop', e => {
+      e.preventDefault();
+      day.classList.remove('drag-over');
+      const id = e.dataTransfer.getData('text/plain');
+      const newDate = day.dataset.date;
+      const run = findRun(id);
+      if (!run || run.date === newDate) return;
+      run.date = newDate;
+      save();
+      renderCalendar();
+      renderMetricsTop();
+      renderFullPlan();
+    });
+  });
+}
+
+/* ============================================================
+   RUN MODAL (log distance + time)
+============================================================ */
+function openRunModal(id) {
+  const run = findRun(id);
+  if (!run) return;
+  const t = RUN_TYPES[run.type];
+  document.getElementById('modal-title').textContent = `${t.label} — ${formatDate(new Date(run.date))}`;
+  document.getElementById('modal-sub').textContent = run.notes;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="row">
+      <div>
+        <label>Planned distance</label>
+        <input disabled value="${run.km.toFixed(1)} km" />
+      </div>
+      <div>
+        <label>Planned duration</label>
+        <input disabled value="${run.durationMin} min" />
+      </div>
+    </div>
+    <div style="height:12px;"></div>
+    <div class="row">
+      <div>
+        <label>Actual distance (km)</label>
+        <input id="m-km" type="number" step="0.1" min="0" value="${run.actualKm ?? run.km}" />
+      </div>
+      <div>
+        <label>Actual time (min)</label>
+        <input id="m-min" type="number" step="1" min="0" value="${run.actualMin ?? run.durationMin}" />
+      </div>
+    </div>
+    <div style="height:12px;"></div>
+    <label>Notes</label>
+    <textarea id="m-notes" rows="2">${run.userNotes || ''}</textarea>
+    <div style="height:12px;"></div>
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <input type="checkbox" id="m-done" ${run.completed?'checked':''} style="width:auto;" />
+      Mark as completed
+    </label>
+  `;
+  const backdrop = document.getElementById('modal-backdrop');
+  backdrop.classList.remove('hidden');
+  document.getElementById('modal-cancel').onclick = () => backdrop.classList.add('hidden');
+  document.getElementById('modal-save').onclick = () => {
+    run.actualKm = parseFloat(document.getElementById('m-km').value) || 0;
+    run.actualMin = parseFloat(document.getElementById('m-min').value) || 0;
+    run.userNotes = document.getElementById('m-notes').value;
+    run.completed = document.getElementById('m-done').checked;
+    save();
+    backdrop.classList.add('hidden');
+    renderCalendar();
+    renderMetricsTop();
+    renderMetricsDetail();
+    renderFullPlan();
+  };
+}
+
+/* ============================================================
+   METRICS
+============================================================ */
+function computeMetrics() {
+  const weeks = state.plan.weeks;
+  const allRuns = weeks.flatMap(w => w.runs);
+  const completed = allRuns.filter(r => r.completed);
+  const plannedKm = allRuns.reduce((s,r) => s + (r.km||0), 0);
+  const actualKm = allRuns.reduce((s,r) => s + (r.actualKm||0), 0);
+  const actualMin = allRuns.reduce((s,r) => s + (r.actualMin||0), 0);
+
+  const byType = {};
+  for (const k of Object.keys(RUN_TYPES)) byType[k] = { total: 0, completed: 0 };
+  for (const r of allRuns) {
+    if (!byType[r.type]) byType[r.type] = { total: 0, completed: 0 };
+    byType[r.type].total++;
+    if (r.completed) byType[r.type].completed++;
+  }
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const start = new Date(state.plan.startDate);
+  const race = new Date(state.profile.raceDate);
+  const total = Math.max(1, race - start);
+  const elapsed = Math.max(0, Math.min(total, today - start));
+  const pctTimeElapsed = (elapsed / total) * 100;
+
+  const avgPaceMin = completed.length ?
+    (completed.reduce((s,r) => s + (r.actualMin/Math.max(r.actualKm,0.01)), 0) / completed.length) : null;
+  const avgPace = avgPaceMin ? `${Math.floor(avgPaceMin)}:${String(Math.round((avgPaceMin%1)*60)).padStart(2,'0')}/km` : null;
+
+  const longestRun = Math.max(0, ...completed.map(r => r.actualKm || 0));
+
+  return {
+    totalRuns: allRuns.length,
+    completedRuns: completed.length,
+    pctRunsCompleted: allRuns.length ? (completed.length/allRuns.length*100) : 0,
+    plannedKm,
+    actualKm,
+    actualMin,
+    pctTimeElapsed,
+    avgPace,
+    longestRun,
+    currentWeekNum: state.currentWeek + 1,
+    totalWeeks: weeks.length,
+    byType,
+  };
+}
+
+/* ============================================================
+   UTILS
+============================================================ */
+function findRun(id) {
+  for (const w of state.plan.weeks) {
+    for (const r of w.runs) if (r.id === id) return r;
+  }
+  return null;
+}
+function formatDate(d) {
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function formatMinutes(m) {
+  if (!m) return '0 min';
+  const h = Math.floor(m/60), mm = Math.round(m%60);
+  return h ? `${h}h ${mm}m` : `${mm} min`;
+}
+
+/* ============================================================
+   VIEW SWITCHING / WEEK NAV
+============================================================ */
+function renderView() {
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  document.getElementById('view-'+state.view).classList.remove('hidden');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === state.view);
+  });
+}
+document.querySelectorAll('.nav-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    state.view = b.dataset.view;
+    save();
+    renderView();
+  });
+});
+document.getElementById('prev-week').addEventListener('click', () => {
+  if (state.currentWeek > 0) { state.currentWeek--; save(); renderCalendar(); }
+});
+document.getElementById('next-week').addEventListener('click', () => {
+  if (state.currentWeek < state.plan.weeks.length - 1) { state.currentWeek++; save(); renderCalendar(); }
+});
+document.getElementById('this-week').addEventListener('click', () => {
+  const todayStr = new Date().toISOString().slice(0,10);
+  const idx = state.plan.weeks.findIndex(w => {
+    const s = new Date(w.startDate);
+    const e = new Date(s); e.setDate(e.getDate()+6);
+    const t = new Date(todayStr);
+    return t >= s && t <= e;
+  });
+  if (idx >= 0) { state.currentWeek = idx; save(); renderCalendar(); }
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Clear your plan and start onboarding again?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+});
+
+/* ============================================================
+   BOOT
+============================================================ */
+(function boot() {
+  if (state.plan && state.profile) {
+    showApp();
+  } else {
+    renderOnboarding();
+  }
+})();
+</script>
+</body>
+</html>
