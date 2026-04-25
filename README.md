@@ -1,0 +1,2 @@
+# funna
+Running training
