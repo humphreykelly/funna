@@ -289,6 +289,17 @@
     min-height: calc(100vh - 60px);
     display: grid; place-items: center; color: var(--muted);
   }
+  .password-wrap { position: relative; }
+  .password-wrap input { padding-right: 42px; }
+  .password-toggle {
+    position: absolute;
+    right: 6px; top: 50%; transform: translateY(-50%);
+    background: transparent; border: none; padding: 6px;
+    color: var(--muted); cursor: pointer;
+    display: grid; place-items: center; border-radius: 6px;
+    width: auto;
+  }
+  .password-toggle:hover { color: var(--text); }
 
   /* Bar chart */
   .bar-chart { display: grid; gap: 6px; }
@@ -334,7 +345,18 @@
     <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com" />
     <div style="height:12px;"></div>
     <label>Password</label>
-    <input type="password" id="auth-password" autocomplete="current-password" placeholder="At least 6 characters" />
+    <div class="password-wrap">
+      <input type="password" id="auth-password" autocomplete="current-password" placeholder="At least 6 characters" />
+      <button type="button" class="password-toggle" data-target="auth-password" aria-label="Show password"></button>
+    </div>
+    <div id="auth-password-confirm-row" class="hidden">
+      <div style="height:12px;"></div>
+      <label>Confirm password</label>
+      <div class="password-wrap">
+        <input type="password" id="auth-password-confirm" autocomplete="new-password" placeholder="Re-enter password" />
+        <button type="button" class="password-toggle" data-target="auth-password-confirm" aria-label="Show password"></button>
+      </div>
+    </div>
     <p id="auth-error" style="color:var(--red); font-size:13px; margin-top:8px; min-height:16px;"></p>
     <p id="auth-info" style="color:var(--green); font-size:13px; margin-top:0; min-height:16px;"></p>
     <button id="auth-submit" class="primary" style="width:100%; margin-top:8px;">Sign in</button>
@@ -1300,6 +1322,20 @@ document.getElementById('this-week').addEventListener('click', () => {
 ============================================================ */
 let authMode = 'signin';
 
+const EYE_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+document.querySelectorAll('.password-toggle').forEach(btn => {
+  btn.innerHTML = EYE_SVG; // initial icon
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    const willShow = input.type === 'password';
+    input.type = willShow ? 'text' : 'password';
+    btn.innerHTML = willShow ? EYE_OFF_SVG : EYE_SVG;
+    btn.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
+  });
+});
+
 function setAuthMode(mode) {
   authMode = mode;
   document.querySelectorAll('.auth-tab').forEach(t => {
@@ -1315,6 +1351,8 @@ function setAuthMode(mode) {
     mode === 'signin' ? 'Sign in' : 'Create account';
   document.getElementById('auth-error').textContent = '';
   document.getElementById('auth-info').textContent = '';
+  document.getElementById('auth-password-confirm-row').classList.toggle('hidden', mode !== 'signup');
+  document.getElementById('auth-password-confirm').value = '';
 }
 document.querySelectorAll('.auth-tab').forEach(tab => {
   tab.addEventListener('click', () => setAuthMode(tab.dataset.mode));
@@ -1329,6 +1367,10 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
 
   if (!email || !password) { errorEl.textContent = 'Email and password are required.'; return; }
   if (password.length < 6)  { errorEl.textContent = 'Password must be at least 6 characters.'; return; }
+  if (authMode === 'signup') {
+    const confirm = document.getElementById('auth-password-confirm').value;
+    if (confirm !== password) { errorEl.textContent = 'Passwords do not match.'; return; }
+  }
 
   const btn = document.getElementById('auth-submit');
   btn.disabled = true;
@@ -1341,7 +1383,11 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
       if (error) errorEl.textContent = error.message;
       // success handled by onAuthStateChange
     } else {
-      const { data, error } = await sb.auth.signUp({ email, password });
+      const { data, error } = await sb.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin + window.location.pathname }
+      });
       if (error) errorEl.textContent = error.message;
       else if (!data.session) {
         // Email confirmation is on — show check-inbox message
@@ -1356,7 +1402,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
   }
 });
 
-['auth-email','auth-password'].forEach(id => {
+['auth-email','auth-password','auth-password-confirm'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('auth-submit').click();
   });
@@ -1369,7 +1415,9 @@ document.getElementById('auth-forgot').addEventListener('click', async (e) => {
   const infoEl = document.getElementById('auth-info');
   errorEl.textContent = ''; infoEl.textContent = '';
   if (!email) { errorEl.textContent = 'Enter your email above first.'; return; }
-  const { error } = await sb.auth.resetPasswordForEmail(email);
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
   if (error) errorEl.textContent = error.message;
   else infoEl.textContent = 'Password reset email sent.';
 });
@@ -1442,6 +1490,7 @@ function onSignedOut() {
   // Clear inputs
   document.getElementById('auth-email').value = '';
   document.getElementById('auth-password').value = '';
+  document.getElementById('auth-password-confirm').value = '';
   document.getElementById('auth-error').textContent = '';
   document.getElementById('auth-info').textContent = '';
   setAuthMode('signin');
